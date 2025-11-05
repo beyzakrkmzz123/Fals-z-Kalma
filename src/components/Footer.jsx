@@ -12,7 +12,7 @@ function Footer() {
   };
 
   return (
-    <div className="bg-gray-100 py-8 text-center text-gray-600 text-sm select-none font-medium">
+    <div className="bg-gradient-to-t from-[#0F172A] via-[#1E1F4D] to-[#312E81] py-8 text-center text-white text-sm select-none font-medium">
       <div className="mb-4">
         {t("© 2025 Falsız Kalma. Tüm hakları saklıdır.")}
       </div>
@@ -25,7 +25,7 @@ function Footer() {
             if (e.key === "Enter" || e.key === " ")
               openLink("https://www.instagram.com/");
           }}
-          className="hover:text-pink-500 transition-colors duration-300 cursor-pointer"
+          className="hover:text-pink-400 transition-colors duration-300 cursor-pointer"
           aria-label="Instagram"
         >
           <IoLogoInstagram />
@@ -38,7 +38,7 @@ function Footer() {
             if (e.key === "Enter" || e.key === " ")
               openLink("https://www.facebook.com/");
           }}
-          className="hover:text-blue-700 transition-colors duration-300 cursor-pointer"
+          className="hover:text-blue-400 transition-colors duration-300 cursor-pointer"
           aria-label="Facebook"
         >
           <FaFacebook />
@@ -51,7 +51,7 @@ function Footer() {
             if (e.key === "Enter" || e.key === " ")
               openLink("https://twitter.com/");
           }}
-          className="hover:text-blue-400 transition-colors duration-300 cursor-pointer"
+          className="hover:text-indigo-400 transition-colors duration-300 cursor-pointer"
           aria-label="Twitter"
         >
           <FaTwitter />
@@ -66,7 +66,7 @@ function Footer() {
             if (e.key === "Enter" || e.key === " ")
               openLink("https://workspace.google.com/intl/tr/gmail/");
           }}
-          className="hover:text-green-600 transition-colors duration-300 cursor-pointer"
+          className="hover:text-green-400 transition-colors duration-300 cursor-pointer"
           aria-label="Email"
         >
           <MdOutlineMail />

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 function Header() {
   const { t, i18n } = useTranslation();
@@ -13,8 +14,13 @@ function Header() {
 
   return (
     <div className="w-full bg-[#0B0B17] px-8 py-4 flex justify-between items-center text-white select-none sticky top-0 z-50">
-      <div className="text-lg font-bold cursor-default select-text">
-        Falsız Kalma
+      <div className="flex items-center gap-3 cursor-pointer select-none">
+        <img
+          src={logo}
+          alt="Falsız Kalma Logo"
+          className="w-10 h-10 rounded-full object-cover"
+        />
+        <div className="text-lg font-bold text-white">Falsız Kalma</div>
       </div>
 
       <div className="flex items-center space-x-8 text-sm font-medium">
@@ -23,6 +29,9 @@ function Header() {
         </Link>
         <Link to="/falcilar" className="hover:text-purple-400 cursor-pointer">
           {t("Falcılar")}
+        </Link>
+        <Link to="/yapayzeka" className="hover:text-purple-400 cursor-pointer">
+          {t("Yapay Zeka")}
         </Link>
         <Link to="/falturleri" className="hover:text-purple-400 cursor-pointer">
           {t("Fal Türleri")}

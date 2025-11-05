@@ -6,13 +6,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {},
-        }
-      }
-</script>
+        tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        keyframes: {
+          morph: {
+            "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+            "50%": { transform: "translate(30px, -30px) scale(1.1)" },
+          },
+          "pulse-slow": {
+            "0%, 100%": { transform: "scale(1)" },
+            "50%": { transform: "scale(1.05)" },
+          },
+          spin: {
+            "0%": { transform: "rotate(0deg)" },
+            "100%": { transform: "rotate(360deg)" },
+          },
+        },
+        animation: {
+          morph: "morph 8s ease-in-out infinite",
+          "pulse-slow": "pulse-slow 4s ease-in-out infinite",
+          "spin-slow": "spin 15s linear infinite",
+        },
+      },
+    },
+  };
+    </script>
+
     <title>Falsız Kalma</title>
   </head>
   <body>

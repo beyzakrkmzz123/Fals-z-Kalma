@@ -11,6 +11,8 @@ import Falcilar from "./pages/Falcilar";
 import FalTurleri from "./pages/FalTurleri";
 import Login from "./pages/Login";
 import Signup from "./pages/SignUp";
+import FalciDetay from "./pages/FalciDetay";
+import YapayZeka from "./pages/YapayZeka";
 import "./i18n";
 
 function App() {
@@ -34,6 +36,8 @@ function App() {
         <Route path="/falcilar" element={<Falcilar />} />
         <Route path="/falturleri" element={<FalTurleri />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/falci/:id" element={<FalciDetay />} />
+        <Route path="/yapayzeka" element={<YapayZeka />} />
         <Route path="/signup" element={<Signup />} />
       </Routes>
       <Footer />
