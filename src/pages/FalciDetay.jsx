@@ -1,81 +1,269 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useMemo, useState, useEffect } from "react"; // useEffect eklendi
+import { useParams } from "react-router-dom"; // Link eklendi
 import { useTranslation } from "react-i18next";
+
+// ✅ Yerel görseller
+import ayseImg from "../assets/ayse.jpg";
+import mehmetImg from "../assets/mehmet.jpg";
+import zeynepImg from "../assets/zeynep.jpg";
 
 function FalciDetay() {
   const { id } = useParams();
   const { t } = useTranslation();
 
-  const [images, setImages] = useState([]);
+  // ✅ 1 foto sınırı
+  const [image, setImage] = useState(null); // { file, url }
+  const [messages, setMessages] = useState([]); // chat
+  const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [falResult, setFalResult] = useState("");
 
-  const falMesajlari = [
-    t(
-      "Kahvenin ortasında bir kalp var... Yakında aşk hayatında güzel gelişmeler olabilir "
-    ),
-    t("Bir yol görünmüş! Uzaklardan beklediğin haber yakında gelebilir "),
-    t(
-      "Kahve falında bir göz belirdi... Etrafında seni kıskanan biri olabilir "
-    ),
-    t("Para sembolleri görünüyor, maddi bir kazanç seni bulacak "),
-    t("Bir kuş şekli var! Uzaktan gelen güzel bir haber kapıda "),
-    t("Yıldızlar parlıyor, şanslı bir döneme giriyorsun "),
-    t("Kahvenin dibinde bir gül açmış, kalbini ısıtacak bir haber var "),
-    t("Bir dalga şekli görünüyor... Duyguların çok yoğun bir dönemdesin "),
-    t("Kahve falında bir yüz beliriyor... Geçmişten biri seni hâlâ düşünüyor "),
-    t("Bir anahtar şekli var! Yeni bir fırsat kapısı açılmak üzere "),
-  ];
+  // ✅ soru hakkı (Mesaj bazlı limit)
+  const MAX_QUESTIONS = 2;
+  const askedCount = useMemo(
+    () => messages.filter((m) => m.role === "user").length,
+    [messages]
+  );
 
+  // ✅ falcı verisi
+  const falci = useMemo(() => {
+    const map = {
+      ayse: {
+        id: "ayse",
+        name: "Ayşe",
+        style: "romantik",
+        image: ayseImg,
+        isPremium: false,
+      },
+      mehmet: {
+        id: "mehmet",
+        name: "Mehmet",
+        style: "net",
+        image: mehmetImg,
+        isPremium: false,
+      },
+      zeynep: {
+        id: "zeynep",
+        name: "Zeynep",
+        style: "spirituel",
+        image: zeynepImg,
+        isPremium: true,
+      },
+    };
+    return map[id];
+  }, [id]);
+
+  // ✅ Falci bulunamazsa (route yanlışsa) sayfa patlamasın
+  if (!falci) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white px-6">
+        <div className="bg-white/10 border border-purple-500/40 rounded-2xl p-6 max-w-md w-full text-center">
+          <div className="text-2xl font-bold mb-2">❌</div>
+          <div className="text-purple-100 font-semibold">
+            {t("Falcı bulunamadı")}
+          </div>
+          <div className="text-purple-300 text-sm mt-2">
+            {t("URL doğru mu? Örn: /falci/ayse")}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ avatar animasyon
+  const avatarRing = isSending
+    ? "shadow-[0_0_45px_rgba(168,85,247,0.85)] animate-pulse"
+    : "shadow-[0_0_25px_rgba(168,85,247,0.5)]";
+
+  // ✅ Foto seç
   const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length + images.length > 3) {
-      alert(t("En fazla 3 fotoğraf yükleyebilirsin ☕"));
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImage({
+      file,
+      url: URL.createObjectURL(file),
+    });
+  };
+
+  const removeImage = () => setImage(null);
+
+  // ✅ Cloudinary upload
+  const uploadImageToServer = async (file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch("http://localhost:5000/api/image/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!data?.success) throw new Error("Cloudinary upload failed");
+    return data.url;
+  };
+
+  // ✅ Fal gönder (AI)
+  const sendToFalci = async () => {
+    if (!image && inputText.trim() === "") {
+      alert(t("Lütfen 1 fotoğraf yükle veya soru yaz!"));
       return;
     }
 
-    const newImages = files.map((file) => ({
-      file,
-      url: URL.createObjectURL(file),
-    }));
-    setImages((prev) => [...prev, ...newImages]);
-  };
-
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const sendToFalci = () => {
-    if (images.length === 0) {
-      alert(t("Lütfen en az bir fotoğraf yükle!"));
+    if (askedCount >= MAX_QUESTIONS) {
+      alert(t("Soru hakkın doldu ✨"));
       return;
     }
 
     setIsSending(true);
-    setFalResult("");
 
-    setTimeout(() => {
+    // kullanıcı mesajı
+    if (inputText.trim() !== "") {
+      setMessages((prev) => [...prev, { role: "user", text: inputText }]);
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", text: t("Fotoğraf gönderdim, yorumlar mısın?") },
+      ]);
+    }
+
+    let uploadedImageUrl = null;
+
+    try {
+      if (image?.file) {
+        uploadedImageUrl = await uploadImageToServer(image.file);
+      }
+    } catch (e) {
+      console.error("Fotoğraf yükleme hatası:", e);
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", text: t("Fotoğraf yüklenirken hata oluştu ❌") },
+      ]);
       setIsSending(false);
+      return;
+    }
 
-      const randomIndex = Math.floor(Math.random() * falMesajlari.length);
-      const randomFal = falMesajlari[randomIndex];
+    // AI çağrısı
+    try {
+      const token = localStorage.getItem("token");
 
-      setFalResult(randomFal);
-    }, 3000);
+      const res = await fetch("http://localhost:5000/api/openai/comment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: "Bearer " + token } : {}),
+        },
+        body: JSON.stringify({
+          question: inputText || "",
+          imageUrl: uploadedImageUrl,
+          falTuru:
+            falci.style === "romantik"
+              ? "Aşk Falı"
+              : falci.style === "net"
+              ? "Genel Fal"
+              : "Spiritüel Fal",
+        }),
+      });
+
+      const data = await res.json();
+
+      // 🔴 BACKEND KONTROLLERİ
+      if (!res.ok) {
+        if (data.code === "AI_LIMIT_EXCEEDED") {
+          alert(
+            "Günlük yapay zeka fal hakkın doldu ✨ Premium’a geçebilirsin."
+          );
+          setIsSending(false);
+          return;
+        }
+
+        alert(data.message || "Fal oluşturulamadı ❌");
+        setIsSending(false);
+        return;
+      }
+
+      if (data?.success) {
+        const personaPrefix =
+          falci.style === "romantik"
+            ? `💖 ${falci.name}: `
+            : falci.style === "net"
+            ? `⚡ ${falci.name}: `
+            : `🔮 ${falci.name}: `;
+
+        const finalText =
+          falci.style === "net"
+            ? personaPrefix + data.answer.split("\n").slice(0, 6).join("\n")
+            : personaPrefix + data.answer;
+
+        setMessages((prev) => [...prev, { role: "ai", text: finalText }]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "ai", text: t("AI yorum üretirken hata oluştu ❌") },
+        ]);
+      }
+    } catch (e) {
+      console.error("OpenAI hata:", e);
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", text: t("Sunucu hatası ❌") },
+      ]);
+    }
+
+    setInputText("");
+    setIsSending(false);
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center py-16 px-6 bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white">
-      <div className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 bg-clip-text text-transparent">
-        {t("Falcı")} #{id}
+      {/* Başlık */}
+      <div className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 bg-clip-text text-transparent text-center">
+        {falci.name} —{" "}
+        {falci.style === "romantik"
+          ? t("Romantik")
+          : falci.style === "net"
+          ? t("Net & Kısa")
+          : t("Spiritüel")}
       </div>
 
-      <div className="bg-white/10 p-8 rounded-2xl border border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.4)] text-center w-full max-w-md">
-        {images.length < 3 && (
+      <div className="text-purple-200 mb-8 italic text-center max-w-2xl">
+        {falci.isPremium
+          ? t("💎 Premium falcı: Daha detaylı ve özel yorumlar yapar.")
+          : t("Fotoğrafını gönder, falcı yorumlasın ✨")}
+      </div>
+
+      {/* Üst kart */}
+      <div className="bg-white/10 p-8 rounded-2xl border border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.4)] text-center w-full max-w-2xl">
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <div
+            className={`rounded-full border-4 border-purple-400 ${avatarRing}`}
+          >
+            <img
+              src={falci.image}
+              alt={falci.name}
+              className="w-24 h-24 rounded-full object-cover"
+            />
+          </div>
+
+          <div className="text-left">
+            <div className="text-purple-100 font-semibold text-lg">
+              {falci.name}
+            </div>
+            <div className="text-purple-300 text-sm">
+              {isSending ? t("⏳ Meşgul... kahveni inceliyorum") : t("Hazırım")}
+            </div>
+
+            <div className="mt-2 text-xs text-purple-300">
+              {t("Soru hakkı")}: {askedCount}/{MAX_QUESTIONS}
+            </div>
+          </div>
+        </div>
+
+        {/* Foto upload */}
+        {!image ? (
           <>
             <label
               htmlFor="fileInput"
-              className="cursor-pointer bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 rounded-full text-white font-semibold hover:opacity-90 transition"
+              className="cursor-pointer inline-block bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 rounded-full text-white font-semibold hover:opacity-90 transition"
             >
               {t("Fotoğraf Yükle")}
             </label>
@@ -83,62 +271,76 @@ function FalciDetay() {
               id="fileInput"
               type="file"
               accept="image/*"
-              multiple
               onChange={handleImageUpload}
               className="hidden"
             />
           </>
-        )}
-
-        {images.length > 0 && (
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {images.map((img, index) => (
-              <div
-                key={index}
-                className="relative group rounded-lg overflow-hidden border border-purple-600 shadow-md"
+        ) : (
+          <div className="mt-2">
+            <div className="relative mx-auto w-full max-w-sm rounded-xl overflow-hidden border border-purple-600 shadow-md">
+              <img
+                src={image.url}
+                alt={t("Yüklenen fotoğraf")}
+                className="w-full h-56 object-cover"
+              />
+              <button
+                onClick={removeImage}
+                className="absolute top-2 right-2 bg-black/60 text-white text-xs px-3 py-1 rounded hover:bg-black/70 transition"
               >
-                <img
-                  src={img.url}
-                  alt={t(`Yüklenen ${index + 1}`)}
-                  className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <button
-                  onClick={() => removeImage(index)}
-                  className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+                ✕ {t("Kaldır")}
+              </button>
+            </div>
           </div>
         )}
 
-        <div className="text-sm text-purple-300 mt-6 italic">
-          {t(
-            "Not: En fazla 3 fotoğraf yükleyebilirsin. Daha fazla yükleme için Premium üyelik yakında!"
-          )}
+        {/* Chat input */}
+        <div className="flex mt-6">
+          <input
+            type="text"
+            placeholder={
+              askedCount >= MAX_QUESTIONS
+                ? t("Soru hakkın doldu")
+                : t("Sorunu yaz (opsiyonel)...")
+            }
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            disabled={askedCount >= MAX_QUESTIONS}
+            className="flex-1 p-3 rounded-l-lg bg-transparent border border-purple-600 text-white focus:outline-none"
+          />
+          <button
+            onClick={sendToFalci}
+            disabled={isSending || askedCount >= MAX_QUESTIONS}
+            className="bg-gradient-to-r from-purple-500 to-pink-600 px-6 rounded-r-lg hover:opacity-90 transition disabled:opacity-50"
+          >
+            {isSending ? t("Gönderiliyor...") : t("Gönder")}
+          </button>
         </div>
-
-        <button
-          onClick={sendToFalci}
-          className="mt-8 bg-gradient-to-r from-purple-500 to-pink-600 px-8 py-3 rounded-full font-semibold hover:opacity-90 transition"
-          disabled={isSending}
-        >
-          {isSending ? t("Falcıya Gönderiliyor...") : t(" Falcıya Gönder")}
-        </button>
       </div>
 
-      <div className="mt-10 w-full max-w-2xl bg-white/10 backdrop-blur-lg border border-purple-600 rounded-2xl p-6">
-        {isSending && (
-          <div className="text-purple-300 text-center animate-pulse">
-            {t("🔮 Falcı kahveni inceliyor...")}
+      {/* Chat alanı */}
+      <div className="mt-10 w-full max-w-2xl bg-white/10 backdrop-blur-lg border border-purple-600 rounded-2xl p-6 flex flex-col space-y-4 h-96 overflow-y-auto">
+        {messages.length === 0 && (
+          <div className="text-purple-300 text-center">
+            {t("Fal sohbeti burada görünecek...")}
           </div>
         )}
-        {falResult && (
-          <div className="text-left bg-purple-800/50 p-4 rounded-lg text-purple-100">
-            <strong>{t("Falcı")}:</strong> {falResult}
+
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={msg.role === "user" ? "text-right" : "text-left"}
+          >
+            <div
+              className={`inline-block max-w-[85%] px-4 py-2 rounded-2xl ${
+                msg.role === "user"
+                  ? "bg-purple-600 text-white rounded-br-md"
+                  : "bg-purple-800/50 text-purple-100 rounded-bl-md"
+              }`}
+            >
+              {msg.text}
+            </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );

@@ -1,78 +1,83 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 function Login() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const [kullaniciAdi, setKullaniciAdi] = useState("");
   const [sifre, setSifre] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
-    if (kullaniciAdi && sifre) {
-      navigate("/");
-    } else {
+  const handleLogin = async () => {
+    if (!kullaniciAdi || !sifre) {
       alert("Lütfen kullanıcı adı ve şifre girin");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: kullaniciAdi,
+          password: sifre,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        alert("Giriş başarılı!");
+        window.location.reload(); // Header için gerekli
+      } else {
+        alert(data.message || "Giriş başarısız.");
+      }
+    } catch {
+      alert("Sunucuya bağlanırken hata oluştu.");
     }
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden text-white flex flex-col items-center justify-center px-6 py-20 bg-gradient-to-br from-purple-900 via-indigo-900 to-black">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-purple-600/30 blur-3xl rounded-full animate-morph"></div>
-        <div className="absolute bottom-[-120px] right-[-120px] w-[400px] h-[400px] bg-pink-500/30 blur-3xl rounded-full animate-morph animation-delay-2000"></div>
-        {[...Array(25)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute bg-white rounded-full opacity-20 animate-ping"
-            style={{
-              width: Math.random() * 3 + "px",
-              height: Math.random() * 3 + "px",
-              top: Math.random() * 100 + "%",
-              left: Math.random() * 100 + "%",
-              animationDelay: Math.random() * 3 + "s",
-              animationDuration: 3 + Math.random() * 2 + "s",
-            }}
-          ></div>
-        ))}
-      </div>
-
-      <div className="max-w-md w-full p-8 rounded-3xl relative z-10 bg-white/10 backdrop-blur-md border border-purple-300/30 shadow-[0_0_50px_rgba(168,85,247,0.3),0_0_18px_rgba(255,255,255,0.06)] select-none">
-        <div className="text-2xl font-bold mb-6 text-center text-white">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-indigo-900 to-black px-6">
+      <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-purple-300/30 rounded-3xl p-8 shadow-[0_0_50px_rgba(168,85,247,0.3)]">
+        <h2 className="text-2xl font-bold text-center text-white mb-6">
           {t("Giriş Yap")}
-        </div>
+        </h2>
 
-        <div className="flex flex-col mb-6">
-          <div className="text-gray-200/90 mb-1 font-semibold">
-            {t("Kullanıcı Adı")}
-          </div>
-          <div
-            contentEditable
-            className="border border-white/20 bg-transparent rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[38px] text-white"
-            onInput={(e) => setKullaniciAdi(e.currentTarget.textContent)}
-            role="textbox"
-            spellCheck="false"
-          ></div>
-        </div>
-
-        <div className="flex flex-col mb-6">
-          <div className="text-gray-200/90 mb-1 font-semibold">
-            {t("Şifre")}
-          </div>
+        {/* EMAIL */}
+        <div className="mb-5">
+          <label className="text-gray-200 font-semibold">{t("E-posta")}</label>
           <input
-            type="password"
-            className="border border-white/20 bg-transparent rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
-            onChange={(e) => setSifre(e.target.value)}
+            type="email"
+            className="w-full mt-1 px-4 py-2 bg-transparent border border-white/20 rounded text-white focus:ring-2 focus:ring-purple-500"
+            onChange={(e) => setKullaniciAdi(e.target.value)}
           />
         </div>
 
-        <div
+        {/* ŞİFRE */}
+        <div className="mb-6 relative">
+          <label className="text-gray-200 font-semibold">{t("Şifre")}</label>
+          <input
+            type={showPassword ? "text" : "password"}
+            className="w-full mt-1 px-4 py-2 bg-transparent border border-white/20 rounded text-white focus:ring-2 focus:ring-purple-500 pr-10"
+            onChange={(e) => setSifre(e.target.value)}
+          />
+          <span
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-[38px] cursor-pointer text-purple-300 text-sm select-none"
+          >
+            {showPassword ? "Gizle" : "Göster"}
+          </span>
+        </div>
+
+        <button
           onClick={handleLogin}
-          className="cursor-pointer w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded text-center select-none"
+          className="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded font-semibold text-white"
         >
           {t("Giriş Yap")}
-        </div>
+        </button>
       </div>
     </div>
   );

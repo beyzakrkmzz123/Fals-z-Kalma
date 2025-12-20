@@ -13,6 +13,9 @@ import Login from "./pages/Login";
 import Signup from "./pages/SignUp";
 import FalciDetay from "./pages/FalciDetay";
 import YapayZeka from "./pages/YapayZeka";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import Premium from "./pages/Premium";
 import "./i18n";
 
 function App() {
@@ -39,6 +42,9 @@ function App() {
         <Route path="/falci/:id" element={<FalciDetay />} />
         <Route path="/yapayzeka" element={<YapayZeka />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/premium" element={<Premium />} />
       </Routes>
       <Footer />
     </Router>
