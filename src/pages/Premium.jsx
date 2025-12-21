@@ -45,14 +45,17 @@ function Premium() {
 
     try {
       // 🔹 Premium satın alma (mock)
-      const res = await fetch("http://localhost:5000/api/payment/premium", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-        body: JSON.stringify({ plan: planId }),
-      });
+      const res = await fetch(
+        "https://falsiz-kalma-backend-production.up.railway.app/api/payment/premium",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({ plan: planId }),
+        }
+      );
 
       const data = await res.json();
 
@@ -62,11 +65,14 @@ function Premium() {
       }
 
       // 🔄 GÜNCEL KULLANICIYI TEKRAR ÇEK
-      const meRes = await fetch("http://localhost:5000/api/auth/me", {
-        headers: {
-          Authorization: "Bearer " + token,
-        },
-      });
+      const meRes = await fetch(
+        "https://falsiz-kalma-backend-production.up.railway.app/api/auth/me",
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }
+      );
 
       const meData = await meRes.json();
       if (meData.success) {

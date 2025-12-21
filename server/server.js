@@ -12,10 +12,9 @@ import fallarRoutes from "./routes/fallarRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
 // ENV
-dotenv.config({ path: "./.env" });
+dotenv.config();
 
-console.log("🔑 OPENAI:", process.env.OPENAI_API_KEY);
-console.log("🔑 CLOUDINARY:", process.env.CLOUDINARY_CLOUD_NAME);
+console.log("ENV dosyaları yüklendi ✅");
 
 const app = express();
 

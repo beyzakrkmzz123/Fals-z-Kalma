@@ -29,9 +29,12 @@ function Settings() {
       return;
     }
 
-    fetch("http://localhost:5000/api/auth/me", {
-      headers: { Authorization: "Bearer " + token },
-    })
+    fetch(
+      "https://falsiz-kalma-backend-production.up.railway.app/api/auth/me",
+      {
+        headers: { Authorization: "Bearer " + token },
+      }
+    )
       .then((res) => res.json())
       .then((data) => {
         if (!data.success) {
@@ -54,13 +57,16 @@ function Settings() {
     setUploading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/image/upload", {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + token,
-        },
-        body: formData,
-      });
+      const res = await fetch(
+        "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload",
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+          body: formData,
+        }
+      );
 
       const data = await res.json();
 
@@ -80,14 +86,17 @@ function Settings() {
   const saveProfile = async () => {
     const token = localStorage.getItem("token");
 
-    const res = await fetch("http://localhost:5000/api/auth/update", {
-      method: "PUT",
-      headers: {
-        Authorization: "Bearer " + token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ username, email, profileImage }), // ⭐ profileImage eklendi
-    });
+    const res = await fetch(
+      "https://falsiz-kalma-backend-production.up.railway.app/api/auth/update",
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, email, profileImage }), // ⭐ profileImage eklendi
+      }
+    );
 
     const data = await res.json();
     if (data.success) {
@@ -108,14 +117,17 @@ function Settings() {
       return;
     }
 
-    const res = await fetch("http://localhost:5000/api/auth/change-password", {
-      method: "PUT",
-      headers: {
-        Authorization: "Bearer " + token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ oldPassword, newPassword }),
-    });
+    const res = await fetch(
+      "https://falsiz-kalma-backend-production.up.railway.app/api/auth/change-password",
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      }
+    );
 
     const data = await res.json();
     if (data.success) {

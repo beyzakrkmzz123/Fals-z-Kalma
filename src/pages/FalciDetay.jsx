@@ -92,10 +92,13 @@ function FalciDetay() {
     const formData = new FormData();
     formData.append("image", file);
 
-    const res = await fetch("http://localhost:5000/api/image/upload", {
-      method: "POST",
-      body: formData,
-    });
+    const res = await fetch(
+      "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
     const data = await res.json();
     if (!data?.success) throw new Error("Cloudinary upload failed");
@@ -146,23 +149,26 @@ function FalciDetay() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/openai/comment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: "Bearer " + token } : {}),
-        },
-        body: JSON.stringify({
-          question: inputText || "",
-          imageUrl: uploadedImageUrl,
-          falTuru:
-            falci.style === "romantik"
-              ? "Aşk Falı"
-              : falci.style === "net"
-              ? "Genel Fal"
-              : "Spiritüel Fal",
-        }),
-      });
+      const res = await fetch(
+        "https://falsiz-kalma-backend-production.up.railway.app/api/openai/comment",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: "Bearer " + token } : {}),
+          },
+          body: JSON.stringify({
+            question: inputText || "",
+            imageUrl: uploadedImageUrl,
+            falTuru:
+              falci.style === "romantik"
+                ? "Aşk Falı"
+                : falci.style === "net"
+                ? "Genel Fal"
+                : "Spiritüel Fal",
+          }),
+        }
+      );
 
       const data = await res.json();
 

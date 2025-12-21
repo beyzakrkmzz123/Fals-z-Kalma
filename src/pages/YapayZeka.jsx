@@ -22,9 +22,12 @@ function YapayZeka() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch("http://localhost:5000/api/auth/me", {
-      headers: { Authorization: "Bearer " + token },
-    })
+    fetch(
+      "https://falsiz-kalma-backend-production.up.railway.app/api/auth/me",
+      {
+        headers: { Authorization: "Bearer " + token },
+      }
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -38,10 +41,13 @@ function YapayZeka() {
     const formData = new FormData();
     formData.append("image", file);
 
-    const res = await fetch("http://localhost:5000/api/image/upload", {
-      method: "POST",
-      body: formData,
-    });
+    const res = await fetch(
+      "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
     const data = await res.json();
     return data.url;
@@ -86,18 +92,21 @@ function YapayZeka() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:5000/api/openai/comment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-        body: JSON.stringify({
-          question: inputText,
-          imageUrl: uploadedImageUrl,
-          falTuru: "Kahve Falı",
-        }),
-      });
+      const res = await fetch(
+        "https://falsiz-kalma-backend-production.up.railway.app/api/openai/comment",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({
+            question: inputText,
+            imageUrl: uploadedImageUrl,
+            falTuru: "Kahve Falı",
+          }),
+        }
+      );
 
       const data = await res.json();
 

@@ -16,7 +16,7 @@ function Profile() {
   // 🔥 falları yeniden çek
   const fetchFallar = () => {
     const token = getToken();
-    fetch("http://localhost:5000/api/fallar", {
+    fetch("https://falsiz-kalma-backend-production.up.railway.app/api/fallar", {
       headers: { Authorization: "Bearer " + token },
     })
       .then((res) => res.json())
@@ -29,9 +29,12 @@ function Profile() {
     const token = getToken();
 
     // Profil bilgisi
-    fetch("http://localhost:5000/api/auth/me", {
-      headers: { Authorization: "Bearer " + token },
-    })
+    fetch(
+      "https://falsiz-kalma-backend-production.up.railway.app/api/auth/me",
+      {
+        headers: { Authorization: "Bearer " + token },
+      }
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -58,7 +61,7 @@ function Profile() {
     try {
       const token = getToken();
       const res = await fetch(
-        `http://localhost:5000/api/fallar/favorite/${fal._id}`,
+        `https://falsiz-kalma-backend-production.up.railway.app/api/fallar/favorite/${fal._id}`,
         {
           method: "PUT",
           headers: {
@@ -91,10 +94,13 @@ function Profile() {
   const deleteFal = async (falId) => {
     try {
       const token = getToken();
-      const res = await fetch(`http://localhost:5000/api/fallar/${falId}`, {
-        method: "DELETE",
-        headers: { Authorization: "Bearer " + token },
-      });
+      const res = await fetch(
+        `https://falsiz-kalma-backend-production.up.railway.app/api/fallar/${falId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token },
+        }
+      );
 
       const data = await res.json();
       if (!data.success) return;

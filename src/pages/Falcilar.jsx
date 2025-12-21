@@ -52,11 +52,14 @@ function Falcilar() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    fetch("http://localhost:5000/api/auth/me", {
-      headers: {
-        Authorization: "Bearer " + token,
-      },
-    })
+    fetch(
+      "https://falsiz-kalma-backend-production.up.railway.app/api/auth/me",
+      {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      }
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setUser(data.user);
