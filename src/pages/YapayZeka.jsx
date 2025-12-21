@@ -37,20 +37,28 @@ function YapayZeka() {
       });
   }, []);
 
-  const uploadImageToServer = async (file) => {
+  const uploadImagesToServer = async (images) => {
+    const token = localStorage.getItem("token");
+    console.log("TOKEN:", token);
     const formData = new FormData();
-    formData.append("image", file);
+
+    images.forEach((img) => {
+      formData.append("images", img.file);
+    });
 
     const res = await fetch(
-      "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload",
+      "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload-multiple",
       {
         method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+        },
         body: formData,
       }
     );
 
     const data = await res.json();
-    return data.url;
+    return data.urls || [];
   };
 
   const isOnlyThanks = (text) => {
@@ -84,9 +92,9 @@ function YapayZeka() {
     setQuestionCount((prev) => prev + 1);
     setIsSending(true);
 
-    let uploadedImageUrl = null;
+    let uploadedImageUrls = [];
     if (images.length > 0) {
-      uploadedImageUrl = await uploadImageToServer(images[0].file);
+      uploadedImageUrls = await uploadImagesToServer(images);
     }
 
     try {
@@ -102,7 +110,7 @@ function YapayZeka() {
           },
           body: JSON.stringify({
             question: inputText,
-            imageUrl: uploadedImageUrl,
+            imageUrls: uploadedImageUrls,
             falTuru: "Kahve Falı",
           }),
         }
@@ -130,9 +138,20 @@ function YapayZeka() {
   };
 
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setImages([{ file, url: URL.createObjectURL(file) }]);
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    if (!isPremium && files.length > 1) {
+      alert("Sadece Premium kullanıcılar birden fazla fotoğraf yükleyebilir.");
+      return;
+    }
+
+    const selectedImages = files.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+
+    setImages((prev) => [...prev, ...selectedImages]);
   };
 
   const removeImage = () => setImages([]);
@@ -162,45 +181,51 @@ function YapayZeka() {
           </div>
         )}
 
-        {images.length === 0 && (
-          <>
-            <label
-              htmlFor="fileInput"
-              className={`cursor-pointer px-6 py-3 rounded-full font-semibold ${
-                limitBitti
-                  ? "bg-gray-600 cursor-not-allowed"
-                  : "bg-gradient-to-r from-purple-500 to-pink-500"
-              }`}
-            >
-              Fotoğraf Yükle
-            </label>
-            <input
-              id="fileInput"
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-              disabled={limitBitti}
-            />
-          </>
-        )}
+        <>
+          <label
+            htmlFor="fileInput"
+            className={`cursor-pointer px-6 py-3 rounded-full font-semibold ${
+              limitBitti
+                ? "bg-gray-600 cursor-not-allowed"
+                : "bg-gradient-to-r from-purple-500 to-pink-500"
+            }`}
+          >
+            {images.length === 0 ? "Fotoğraf Yükle" : "➕ Fotoğraf Ekle"}
+          </label>
+
+          <input
+            id="fileInput"
+            type="file"
+            accept="image/*"
+            multiple={isPremium}
+            onChange={handleImageUpload}
+            className="hidden"
+            disabled={limitBitti}
+          />
+        </>
 
         <div className="text-xs text-purple-300 mt-4 italic">
           Not: En fazla 1 fotoğraf. Premium’da daha fazlası ✨
         </div>
 
         {images.length > 0 && (
-          <div className="mt-6 relative">
-            <img
-              src={images[0].url}
-              className="w-full h-40 object-cover rounded-lg"
-            />
-            <button
-              onClick={removeImage}
-              className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs"
-            >
-              ✕
-            </button>
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            {images.map((img, i) => (
+              <div key={i} className="relative">
+                <img
+                  src={img.url}
+                  className="w-full h-32 object-cover rounded-lg"
+                />
+                <button
+                  onClick={() =>
+                    setImages((prev) => prev.filter((_, index) => index !== i))
+                  }
+                  className="absolute top-1 right-1 bg-black/60 px-2 py-1 rounded text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
           </div>
         )}
 

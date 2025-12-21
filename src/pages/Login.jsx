@@ -1,12 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const [kullaniciAdi, setKullaniciAdi] = useState("");
   const [sifre, setSifre] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/");
+    }
+  }, []);
 
   const handleLogin = async () => {
     if (!kullaniciAdi || !sifre) {
@@ -34,6 +43,7 @@ function Login() {
         localStorage.setItem("user", JSON.stringify(data.user));
         alert("Giriş başarılı!");
         window.location.reload(); // Header için gerekli
+        navigate("/");
       } else {
         alert(data.message || "Giriş başarısız.");
       }

@@ -48,7 +48,6 @@ function Settings() {
       });
   }, [navigate]);
 
-  // ⭐ EKLENDİ: Avatar upload
   const uploadAvatar = async (file) => {
     const token = localStorage.getItem("token");
     const formData = new FormData();
@@ -71,11 +70,22 @@ function Settings() {
       const data = await res.json();
 
       if (data.success) {
+        // 🔥 1️⃣ Profil foto state
         setProfileImage(data.url);
+
+        // 🔥 2️⃣ User state + localStorage (HEADER BURADAN OKUYOR)
+        const updatedUser = {
+          ...user,
+          profileImage: data.url,
+        };
+
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
       } else {
         alert("Resim yüklenemedi");
       }
     } catch (err) {
+      console.error("Avatar upload hatası:", err);
       alert("Resim yüklenirken hata oluştu");
     } finally {
       setUploading(false);

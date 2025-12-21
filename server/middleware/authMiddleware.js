@@ -1,7 +1,7 @@
-// server/middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
-export default function authMiddleware(req, res, next) {
+export default async function authMiddleware(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
@@ -11,8 +11,19 @@ export default function authMiddleware(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 🔥 SADECE BURASI ÖNEMLİ
-    req.user = { userId: decoded.id };
+    const user = await User.findById(decoded.id).select("isPremium");
+
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "Kullanıcı bulunamadı.",
+      });
+    }
+
+    req.user = {
+      userId: decoded.id,
+      isPremium: user.isPremium,
+    };
 
     next();
   } catch (error) {

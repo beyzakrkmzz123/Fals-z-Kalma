@@ -187,7 +187,7 @@ function Profile() {
         {fallar.length === 0 ? (
           <p className="text-gray-300">Henüz hiç fal gönderilmemiş ✨</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {fallar.map((fal) => (
               <div
                 key={fal._id}
@@ -238,7 +238,7 @@ function Profile() {
           onClick={() => setSelectedFal(null)}
         >
           <div
-            className="bg-[#12001f] max-w-md w-full rounded-2xl p-6 border border-purple-600"
+            className="bg-[#12001f] max-w-md w-full max-h-[85vh] overflow-y-auto rounded-2xl p-6 border border-purple-600"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -254,7 +254,7 @@ function Profile() {
               alt="Fal"
             />
 
-            <div className="text-purple-100 text-sm whitespace-pre-line">
+            <div className="text-purple-100 text-sm whitespace-pre-wrap break-words max-h-60 overflow-y-auto pr-2">
               {selectedFal.comment}
             </div>
           </div>
