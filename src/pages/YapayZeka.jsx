@@ -82,7 +82,10 @@ function YapayZeka() {
     if (dailyFalLimit === 0) return;
     if (questionCount >= MAX_QUESTIONS) return;
 
-    if (images.length === 0 && inputText.trim() === "") {
+    const hasImage = images.length > 0;
+    const hasText = inputText.trim() !== "";
+
+    if (!hasImage && !hasText) {
       alert("Lütfen bir soru yazın veya en az bir fotoğraf yükleyin.");
       return;
     }
