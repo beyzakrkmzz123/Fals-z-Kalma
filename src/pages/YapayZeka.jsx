@@ -81,7 +81,11 @@ function YapayZeka() {
   const handleSend = async () => {
     if (dailyFalLimit === 0) return;
     if (questionCount >= MAX_QUESTIONS) return;
-    if (images.length === 0 && inputText.trim() === "") return;
+
+    if (images.length === 0 && inputText.trim() === "") {
+      alert("Lütfen bir soru yazın veya en az bir fotoğraf yükleyin.");
+      return;
+    }
 
     // kullanıcı mesajı
     if (inputText.trim() !== "") {
