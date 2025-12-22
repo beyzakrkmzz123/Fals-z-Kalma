@@ -5,6 +5,8 @@ import cloudinary from "../config/cloudinary.js";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import authMiddleware from "../middleware/authMiddleware.js";
 
+console.log("🔥 imageRoutes.js LOADED");
+
 const router = express.Router();
 
 const storage = new CloudinaryStorage({
@@ -34,6 +36,7 @@ router.post(
   authMiddleware,
   upload.array("images", 5),
   (req, res) => {
+    console.log("🔥 upload-multiple HIT"); // 👈
     try {
       const isPremium = req.user?.isPremium;
 

@@ -40,6 +40,11 @@ function YapayZeka() {
   const uploadImagesToServer = async (images) => {
     const token = localStorage.getItem("token");
     console.log("TOKEN:", token);
+    console.log(
+      "FETCH URL:",
+      "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload-multiple"
+    );
+
     const formData = new FormData();
 
     images.forEach((img) => {
