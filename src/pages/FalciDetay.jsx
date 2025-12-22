@@ -11,8 +11,7 @@ function FalciDetay() {
   const { id } = useParams();
   const { t } = useTranslation();
 
-  // ✅ 1 foto sınırı
-  const [image, setImage] = useState(null); // { file, url }
+  const [images, setImages] = useState([]);
   const [messages, setMessages] = useState([]); // chat
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -74,41 +73,55 @@ function FalciDetay() {
     ? "shadow-[0_0_45px_rgba(168,85,247,0.85)] animate-pulse"
     : "shadow-[0_0_25px_rgba(168,85,247,0.5)]";
 
-  // ✅ Foto seç
+  // ✅ Foto seç (çoklu uyumlu)
   const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
-    setImage({
+    if (!falci.isPremium && files.length > 1) {
+      alert("Bu falcıda sadece 1 fotoğraf gönderebilirsin.");
+      return;
+    }
+
+    const selectedImages = files.map((file) => ({
       file,
       url: URL.createObjectURL(file),
-    });
+    }));
+
+    setImages((prev) => [...prev, ...selectedImages]);
+  };
+  const removeImage = (index) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const removeImage = () => setImage(null);
-
-  // ✅ Cloudinary upload
-  const uploadImageToServer = async (file) => {
+  const uploadImagesToServer = async (images) => {
+    const token = localStorage.getItem("token");
     const formData = new FormData();
-    formData.append("image", file);
+
+    images.forEach((img) => {
+      formData.append("images", img.file);
+    });
 
     const res = await fetch(
-      "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload",
+      "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload-multiple",
       {
         method: "POST",
+        headers: { Authorization: "Bearer " + token },
         body: formData,
       }
     );
 
     const data = await res.json();
-    if (!data?.success) throw new Error("Cloudinary upload failed");
-    return data.url;
+    return data.urls || [];
   };
 
   // ✅ Fal gönder (AI)
   const sendToFalci = async () => {
-    if (!image && inputText.trim() === "") {
-      alert(t("Lütfen 1 fotoğraf yükle veya soru yaz!"));
+    const hasImage = images.length > 0;
+    const hasText = inputText.trim().length > 0;
+
+    if (!hasImage && !hasText) {
+      alert(t("Lütfen bir soru yaz veya fotoğraf gönder."));
       return;
     }
 
@@ -129,11 +142,11 @@ function FalciDetay() {
       ]);
     }
 
-    let uploadedImageUrl = null;
+    let uploadedImageUrls = [];
 
     try {
-      if (image?.file) {
-        uploadedImageUrl = await uploadImageToServer(image.file);
+      if (hasImage) {
+        uploadedImageUrls = await uploadImagesToServer(images);
       }
     } catch (e) {
       console.error("Fotoğraf yükleme hatası:", e);
@@ -158,8 +171,10 @@ function FalciDetay() {
             ...(token ? { Authorization: "Bearer " + token } : {}),
           },
           body: JSON.stringify({
-            question: inputText || "",
-            imageUrl: uploadedImageUrl,
+            question: hasText
+              ? inputText
+              : "Bu fotoğraflara bakarak fal yorumu yap.",
+            imageUrls: uploadedImageUrls,
             falTuru:
               falci.style === "romantik"
                 ? "Aşk Falı"
@@ -265,37 +280,40 @@ function FalciDetay() {
         </div>
 
         {/* Foto upload */}
-        {!image ? (
-          <>
-            <label
-              htmlFor="fileInput"
-              className="cursor-pointer inline-block bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 rounded-full text-white font-semibold hover:opacity-90 transition"
-            >
-              {t("Fotoğraf Yükle")}
-            </label>
-            <input
-              id="fileInput"
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-          </>
-        ) : (
-          <div className="mt-2">
-            <div className="relative mx-auto w-full max-w-sm rounded-xl overflow-hidden border border-purple-600 shadow-md">
-              <img
-                src={image.url}
-                alt={t("Yüklenen fotoğraf")}
-                className="w-full h-56 object-cover"
-              />
-              <button
-                onClick={removeImage}
-                className="absolute top-2 right-2 bg-black/60 text-white text-xs px-3 py-1 rounded hover:bg-black/70 transition"
-              >
-                ✕ {t("Kaldır")}
-              </button>
-            </div>
+        <label
+          htmlFor="fileInput"
+          className="cursor-pointer inline-block bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 rounded-full text-white font-semibold hover:opacity-90 transition"
+        >
+          {t("Fotoğraf Yükle")}
+        </label>
+
+        <input
+          id="fileInput"
+          type="file"
+          accept="image/*"
+          multiple={falci.isPremium}
+          onChange={handleImageUpload}
+          className="hidden"
+        />
+
+        {/* Foto önizleme */}
+        {images.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            {images.map((img, i) => (
+              <div key={i} className="relative">
+                <img
+                  src={img.url}
+                  alt={t("Yüklenen fotoğraf")}
+                  className="w-full h-40 object-cover rounded-lg"
+                />
+                <button
+                  onClick={() => removeImage(i)}
+                  className="absolute top-1 right-1 bg-black/60 text-white text-xs px-3 py-1 rounded hover:bg-black/70 transition"
+                >
+                  ✕ {t("Kaldır")}
+                </button>
+              </div>
+            ))}
           </div>
         )}
 

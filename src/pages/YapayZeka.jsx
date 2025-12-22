@@ -83,33 +83,41 @@ function YapayZeka() {
     if (questionCount >= MAX_QUESTIONS) return;
 
     const hasImage = images.length > 0;
-    const hasText = inputText.trim() !== "";
+    const hasText = inputText.trim().length > 0;
 
+    // ❌ İkisi de yoksa uyarı ver
     if (!hasImage && !hasText) {
       alert("Lütfen bir soru yazın veya en az bir fotoğraf yükleyin.");
       return;
     }
 
-    // kullanıcı mesajı
-    if (inputText.trim() !== "") {
+    // ✅ Foto var ama soru yoksa backend boş gitmesin diye otomatik soru
+    const finalQuestion = hasText
+      ? inputText
+      : "Bu fotoğrafa bakarak genel bir fal yorumu yap.";
+
+    // Kullanıcı mesajını sadece gerçekten yazdıysa chat’e ekle
+    if (hasText) {
       setMessages((prev) => [...prev, { role: "user", text: inputText }]);
     }
 
-    // 🙏 teşekkürse AI çağırma
-    if (isOnlyThanks(inputText)) {
+    // 🙏 sadece teşekkürse AI çağırma
+    if (hasText && isOnlyThanks(inputText)) {
       setInputText("");
       return;
     }
 
     setQuestionCount((prev) => prev + 1);
-    setIsSending(true);
-
-    let uploadedImageUrls = [];
-    if (images.length > 0) {
-      uploadedImageUrls = await uploadImagesToServer(images);
-    }
+    setIsSending(true); // 🔥 AI yazıyor başladı
 
     try {
+      // 1) Fotoğrafları yükle (varsa)
+      let uploadedImageUrls = [];
+      if (hasImage) {
+        uploadedImageUrls = await uploadImagesToServer(images);
+      }
+
+      // 2) OpenAI endpoint
       const token = localStorage.getItem("token");
 
       const res = await fetch(
@@ -121,8 +129,8 @@ function YapayZeka() {
             Authorization: "Bearer " + token,
           },
           body: JSON.stringify({
-            question: inputText,
-            imageUrls: uploadedImageUrls,
+            question: finalQuestion,
+            imageUrls: uploadedImageUrls, // backend'in buna göre ayarlıysa OK
             falTuru: "Kahve Falı",
           }),
         }
@@ -133,20 +141,29 @@ function YapayZeka() {
       if (data.success) {
         setMessages((prev) => [...prev, { role: "ai", text: data.answer }]);
 
-        // 🔥 frontend tarafında hak düşür
+        // Premium değilse hak düş
         if (!isPremium) {
           setDailyFalLimit((prev) => prev - 1);
         }
+
+        // İstersen gönderince fotoğrafları temizle (bence iyi olur)
+        setImages([]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "ai", text: data.message || "Bir hata oluştu ❌" },
+        ]);
       }
-    } catch {
+
+      setInputText("");
+    } catch (err) {
       setMessages((prev) => [
         ...prev,
         { role: "ai", text: "Bir hata oluştu ❌" },
       ]);
+    } finally {
+      setIsSending(false); // ✅ AI yazıyor bitti
     }
-
-    setInputText("");
-    setIsSending(false);
   };
 
   const handleImageUpload = (e) => {
@@ -261,7 +278,7 @@ function YapayZeka() {
       </div>
 
       {/* CHAT */}
-      <div className="mt-12 w-full max-w-4xl bg-white/10 border border-purple-600 rounded-2xl p-6 h-96 overflow-y-auto">
+      <div className="mt-12 w-full max-w-5xl bg-white/10 border border-purple-600 rounded-2xl p-8 h-[32rem] overflow-y-auto">
         {messages.length === 0 && (
           <div className="text-center text-purple-300">
             Falın burada görünecek...
@@ -284,6 +301,13 @@ function YapayZeka() {
             </div>
           </div>
         ))}
+        {isSending && (
+          <div className="text-left">
+            <div className="inline-block px-4 py-2 rounded-lg mb-2 bg-purple-800/50 rounded-bl-none animate-pulse">
+              ✨ AI yazıyor...
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
