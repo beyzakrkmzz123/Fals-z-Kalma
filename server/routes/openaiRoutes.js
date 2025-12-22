@@ -1,8 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
 import OpenAI from "openai";
-import auth from "../middleware/authMiddleware.js"; // 🔥 EKLENDİ
-import Fal from "../models/Fal.js"; // 🔥 EKLENDİ
+import auth from "../middleware/authMiddleware.js";
+import Fal from "../models/Fal.js";
 
 dotenv.config();
 const router = express.Router();
@@ -14,24 +14,39 @@ const client = new OpenAI({
 
 // 📌 POST → /api/openai/comment
 router.post("/comment", auth, async (req, res) => {
-  // 🔥 auth EKLENDİ
   try {
-    const { question, imageUrl, falTuru } = req.body;
+    // 🔥 SADECE imageUrls KULLANIYORUZ
+    const { question, imageUrls, falTuru } = req.body;
 
-    if (!question && !imageUrl) {
+    // 🔐 VALIDATION
+    if (!question && (!imageUrls || imageUrls.length === 0)) {
       return res.status(400).json({
         success: false,
-        message: "Mesaj veya fotoğraf gönderilmelidir.",
+        message: "Mesaj veya en az bir fotoğraf gönderilmelidir.",
       });
     }
 
+    // 🧠 FOTO BİLGİSİ
+    let imageInfo = "Fotoğraf yok.";
+
+    if (imageUrls && imageUrls.length > 0) {
+      imageInfo = `
+Kullanıcı ${imageUrls.length} adet fotoğraf yükledi.
+Tüm fotoğrafları birlikte analiz et.
+`;
+    }
+
+    // 🧙‍♀️ PROMPT
     const prompt = `
 Sen profesyonel bir fal yorumcususun.
 Fal türü: ${falTuru || "Kahve Falı"}
-Kullanıcının sorusu: ${question || "Sorulmamış"}
-Fotoğraf URL: ${imageUrl || "Yok"}
 
-Fotoğraf varsa şekilleri ve enerjiyi hissettiğini söyle.
+Kullanıcının sorusu:
+${question || "Sorulmamış"}
+
+${imageInfo}
+
+Fotoğraf varsa şekilleri, sembolleri ve enerjiyi hissettiğini söyle.
 Samimi, spiritüel ve motive edici bir yorum yap.
 Abartılı mistik bilgiler yazma; eğlence amaçlı yorum yap.
     `;
@@ -46,17 +61,18 @@ Abartılı mistik bilgiler yazma; eğlence amaçlı yorum yap.
 
     const answer = completion.choices[0].message.content;
 
-    // 🔥 FALI VERİTABANINA KAYDET (EN KRİTİK SATIRLAR)
+    // 💾 FALI KAYDET
     const fal = await Fal.create({
       userId: req.user.userId,
-      image: imageUrl || "",
+      images: imageUrls || [],
       comment: answer,
+      falTuru: falTuru || "Kahve Falı",
     });
 
     return res.json({
       success: true,
       answer,
-      fal, // ister frontend’de kullan
+      fal,
     });
   } catch (error) {
     console.error("❌ OpenAI API / Fal Kayıt Hatası:", error);
