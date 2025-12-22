@@ -37,6 +37,7 @@ router.post(
   upload.array("images", 5),
   (req, res) => {
     console.log("🔥 upload-multiple HIT"); // 👈
+    console.log("🔥 FILES:", req.files);
     try {
       const isPremium = req.user?.isPremium;
 
