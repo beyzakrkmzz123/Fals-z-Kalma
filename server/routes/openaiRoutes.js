@@ -7,14 +7,18 @@ import Fal from "../models/Fal.js";
 dotenv.config();
 const router = express.Router();
 
+// 🔥 OpenAI Client
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// 📌 POST → /api/openai/comment
 router.post("/comment", auth, async (req, res) => {
   try {
+    // 🔥 SADECE imageUrls KULLANIYORUZ
     const { question, imageUrls, falTuru } = req.body;
 
+    // 🔐 VALIDATION
     if (!question && (!imageUrls || imageUrls.length === 0)) {
       return res.status(400).json({
         success: false,
@@ -22,64 +26,42 @@ router.post("/comment", auth, async (req, res) => {
       });
     }
 
-    // 🔮 FALCIYA GÖRE PROMPT
-    let falciPrompt = "";
+    // 🧠 FOTO BİLGİSİ
+    let imageInfo = "Fotoğraf yok.";
 
-    if (falTuru === "Aşk Falı") {
-      falciPrompt = `
-Sen romantik, duygusal ve detaycı bir fal yorumcususun.
-Fotoğraflardaki küçük detaylara dikkat et.
-Yorumun uzun, yumuşak ve duygusal olsun.
-`;
-    } else if (falTuru === "Spiritüel Fal") {
-      falciPrompt = `
-Sen sezgileri güçlü spiritüel bir falcısın.
-Enerji, yoğunluk ve dönüşüm temalarına odaklan.
-Yorumun mistik ama abartısız olsun.
-`;
-    } else {
-      falciPrompt = `
-Sen net ve iddialı konuşan bir falcısın.
-Belirsiz ifadeler kullanma.
-Gördüğünü doğrudan söyle.
+    if (imageUrls && imageUrls.length > 0) {
+      imageInfo = `
+Kullanıcı ${imageUrls.length} adet fotoğraf yükledi.
+Tüm fotoğrafları birlikte analiz et.
 `;
     }
 
-    // 🧠 USER TEXT
-    const userText = `
-${falciPrompt}
+    // 🧙‍♀️ PROMPT
+    const prompt = `
+Sen profesyonel bir fal yorumcususun.
+Fal türü: ${falTuru || "Kahve Falı"}
 
 Kullanıcının sorusu:
-${question || "Soru sorulmadı"}
+${question || "Sorulmamış"}
 
-Fotoğraf varsa, gördüğün şekilleri doğrudan yorumla.
-`;
+${imageInfo}
 
-    // 🔥 OPENAI VISION FORMAT (DOĞRU)
-    const messages = [
-      {
-        role: "system",
-        content: "Sen deneyimli bir fal yorumcusun.",
-      },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: userText },
-          ...(imageUrls || []).map((url) => ({
-            type: "image_url",
-            image_url: { url },
-          })),
-        ],
-      },
-    ];
+Fotoğraf varsa şekilleri, sembolleri ve enerjiyi hissettiğini söyle.
+Samimi, spiritüel ve motive edici bir yorum yap.
+Abartılı mistik bilgiler yazma; eğlence amaçlı yorum yap.
+    `;
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      messages,
+      messages: [
+        { role: "system", content: "Sen deneyimli bir fal yorumcusun." },
+        { role: "user", content: prompt },
+      ],
     });
 
     const answer = completion.choices[0].message.content;
 
+    // 💾 FALI KAYDET
     const fal = await Fal.create({
       userId: req.user.userId,
       images: imageUrls || [],
@@ -93,10 +75,11 @@ Fotoğraf varsa, gördüğün şekilleri doğrudan yorumla.
       fal,
     });
   } catch (error) {
-    console.error("❌ OPENAI ERROR:", error);
+    console.error("❌ OpenAI API / Fal Kayıt Hatası:", error);
+
     return res.status(500).json({
       success: false,
-      message: "AI yorum üretirken hata oluştu.",
+      message: "AI yorum üretirken bir hata oluştu.",
     });
   }
 });
