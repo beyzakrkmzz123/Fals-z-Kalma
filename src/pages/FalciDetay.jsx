@@ -78,13 +78,15 @@ function FalciDetay() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setImage({
-      file,
-      url: URL.createObjectURL(file),
-    });
+    setImages([
+      {
+        file,
+        url: URL.createObjectURL(file),
+      },
+    ]);
   };
 
-  const removeImage = () => setImage(null);
+  const removeImage = () => setImages([]);
 
   // ✅ Cloudinary upload
   const uploadImageToServer = async (file) => {
@@ -106,7 +108,7 @@ function FalciDetay() {
 
   // ✅ Fal gönder (AI)
   const sendToFalci = async () => {
-    if (!image && inputText.trim() === "") {
+    if (!images && inputText.trim() === "") {
       alert(t("Lütfen 1 fotoğraf yükle veya soru yaz!"));
       return;
     }
@@ -131,8 +133,8 @@ function FalciDetay() {
     let uploadedImageUrl = null;
 
     try {
-      if (image?.file) {
-        uploadedImageUrl = await uploadImageToServer(image.file);
+      if (images.length > 0) {
+        uploadedImageUrl = await uploadImageToServer(images[0].file);
       }
     } catch (e) {
       console.error("Fotoğraf yükleme hatası:", e);
@@ -264,7 +266,7 @@ function FalciDetay() {
         </div>
 
         {/* Foto upload */}
-        {!image ? (
+        {images.length === 0 ? (
           <>
             <label
               htmlFor="fileInput"
@@ -284,7 +286,7 @@ function FalciDetay() {
           <div className="mt-2">
             <div className="relative mx-auto w-full max-w-sm rounded-xl overflow-hidden border border-purple-600 shadow-md">
               <img
-                src={image.url}
+                src={images[0].url}
                 alt={t("Yüklenen fotoğraf")}
                 className="w-full h-56 object-cover"
               />
