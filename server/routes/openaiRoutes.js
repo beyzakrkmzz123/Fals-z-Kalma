@@ -7,7 +7,7 @@ import Fal from "../models/Fal.js";
 dotenv.config();
 const router = express.Router();
 
-// 🔥 OpenAI Client
+// 🔥 OpenAI Client (GÜNCEL)
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -15,10 +15,8 @@ const client = new OpenAI({
 // 📌 POST → /api/openai/comment
 router.post("/comment", auth, async (req, res) => {
   try {
-    // 🔥 SADECE imageUrls KULLANIYORUZ
     const { question, imageUrls, falTuru } = req.body;
 
-    // 🔐 VALIDATION
     if (!question && (!imageUrls || imageUrls.length === 0)) {
       return res.status(400).json({
         success: false,
@@ -26,17 +24,7 @@ router.post("/comment", auth, async (req, res) => {
       });
     }
 
-    // 🧠 FOTO BİLGİSİ
-    let imageInfo = "Fotoğraf yok.";
-
-    if (imageUrls && imageUrls.length > 0) {
-      imageInfo = `
-Kullanıcı ${imageUrls.length} adet fotoğraf yükledi.
-Tüm fotoğrafları birlikte analiz et.
-`;
-    }
-
-    // 🧙‍♀️ PROMPT
+    // 🧙‍♀️ PROMPT (TEXT KISMI)
     const prompt = `
 Sen profesyonel bir fal yorumcususun.
 Fal türü: ${falTuru || "Kahve Falı"}
@@ -44,19 +32,33 @@ Fal türü: ${falTuru || "Kahve Falı"}
 Kullanıcının sorusu:
 ${question || "Sorulmamış"}
 
-${imageInfo}
-
-Fotoğraf varsa şekilleri, sembolleri ve enerjiyi hissettiğini söyle.
-Samimi, spiritüel ve motive edici bir yorum yap.
-Abartılı mistik bilgiler yazma; eğlence amaçlı yorum yap.
+Eğer fotoğraflar varsa:
+- Fotoğraflardaki şekilleri, sembolleri ve genel enerjiyi yorumla
+- Gerçekçi ama eğlenceli ol
+- Abartılı mistik bilgiler uydurma
     `;
+
+    // 🔥 OPENAI VISION MESAJ YAPISI (EN KRİTİK YER)
+    const messages = [
+      {
+        role: "system",
+        content: "Sen deneyimli ve sezgileri güçlü bir fal yorumcusun.",
+      },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          ...(imageUrls || []).map((url) => ({
+            type: "image_url",
+            image_url: { url },
+          })),
+        ],
+      },
+    ];
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "Sen deneyimli bir fal yorumcusun." },
-        { role: "user", content: prompt },
-      ],
+      messages,
     });
 
     const answer = completion.choices[0].message.content;
@@ -75,11 +77,10 @@ Abartılı mistik bilgiler yazma; eğlence amaçlı yorum yap.
       fal,
     });
   } catch (error) {
-    console.error("❌ OpenAI API / Fal Kayıt Hatası:", error);
-
+    console.error("❌ OpenAI Hatası:", error);
     return res.status(500).json({
       success: false,
-      message: "AI yorum üretirken bir hata oluştu.",
+      message: "AI yorum üretirken hata oluştu.",
     });
   }
 });
