@@ -25,67 +25,44 @@ router.post("/comment", auth, async (req, res) => {
       });
     }
 
-    /* =====================================================
-       🧙‍♀️ FALCIYA GÖRE PROMPT (STİL AYRIMI)
-    ===================================================== */
+    /* ===============================
+       🧙‍♀️ FALCIYA GÖRE STİL
+    =============================== */
     let falciPrompt = "";
 
     if (falTuru === "Aşk Falı") {
       // 💖 AYŞE
       falciPrompt = `
 Sen romantik, duygusal ve detaycı bir fal yorumcususun.
-Fotoğraflardaki küçük detaylara özellikle dikkat et:
+Fotoğraflardaki küçük detaylara dikkat et:
 - kalp benzeri şekiller
 - birleşen yollar
-- açık alanlar ve yumuşak geçişler
-
-Yorumun:
-- uzun
-- betimleyici
-- duygusal güven veren
-olmalı.
-
-Kesin konuşma ama romantik ihtimaller sun.
+- yumuşak geçişler
+Uzun, betimleyici ve güven veren konuş.
 `;
     } else if (falTuru === "Spiritüel Fal") {
       // 🔮 ZEYNEP
       falciPrompt = `
-Sen derin sezgilere sahip spiritüel bir falcısın.
-Fotoğraflardaki enerjiyi ve yoğunluk farklarını yorumla:
-- koyu telve = yük / blokaj
-- açık alan = ferahlama
-- akıntılar = dönüşüm
-
-Yorumun:
-- sezgisel
-- mistik ama abartısız
-- ruhsal farkındalık içeren
-olmalı.
-
-Enerji dili kullan.
+Sen sezgileri güçlü spiritüel bir falcısın.
+Fotoğraflardaki enerji ve yoğunluk farklarını yorumla:
+- koyu alanlar = blokaj
+- açık alanlar = ferahlama
+Sezgisel ama abartısız konuş.
 `;
     } else {
-      // ⚡ MEHMET (GENEL / NET)
+      // ⚡ MEHMET
       falciPrompt = `
-Sen net, iddialı ve kısa konuşan bir falcısın.
-Fotoğraflara bakarak:
-- ne görüyorsan onu söyle
-- varsa açık yol, yoksa açıkça söyle
+Sen net, kısa ve iddialı konuşan bir falcısın.
+Fotoğraflara bak:
+- açık yol var mı yok mu söyle
 - belirsiz ifadelerden kaçın
-
-Yorumun:
-- maddeli
-- kısa
-- kesin ifadeli
-olsun.
-
-"Olabilir" yerine "görünüyor / yok" gibi ifadeler kullan.
+Maddeli ve kesin konuş.
 `;
     }
 
-    /* =====================================================
-       🧠 ANA PROMPT (GÜVEN VEREN KISIM)
-    ===================================================== */
+    /* ===============================
+       🧠 ANA PROMPT
+    =============================== */
     const prompt = `
 ${falciPrompt}
 
@@ -93,20 +70,21 @@ Kullanıcının sorusu:
 ${question || "Sorulmamış"}
 
 Fotoğrafları gerçekten analiz et.
-Eğer fotoğraflarda şunları görüyorsan mutlaka belirt:
-- telvenin yoğunluğu
-- açık ve kapalı alan oranı
-- fincan kenarında akıntı izi
-- birden fazla fotoğraf varsa aralarındaki fark
+Eğer görüyorsan:
+- telve yoğunluğunu
+- açık / kapalı alanları
+- fincan kenarındaki akıntıları
+belirt.
 
 Görmediğin hiçbir şeyi ASLA uydurma.
-Genel geçer fal cümlelerinden kaçın.
-Yorumun fotoğraflarla birebir ilişkili olsun.
+Genel fal cümlelerinden kaçın.
 `;
 
-    /* =====================================================
-       🔥 OPENAI VISION MESSAGE YAPISI
-    ===================================================== */
+    /* ===============================
+       🔥 OPENAI VISION MESAJI
+    =============================== */
+    const safeImageUrls = Array.isArray(imageUrls) ? imageUrls : [];
+
     const messages = [
       {
         role: "system",
@@ -116,7 +94,7 @@ Yorumun fotoğraflarla birebir ilişkili olsun.
         role: "user",
         content: [
           { type: "text", text: prompt },
-          ...(imageUrls || []).map((url) => ({
+          ...safeImageUrls.map((url) => ({
             type: "image_url",
             image_url: { url },
           })),
@@ -124,8 +102,11 @@ Yorumun fotoğraflarla birebir ilişkili olsun.
       },
     ];
 
+    // 🔴 DEBUG LOG (ÇOK ÖNEMLİ)
+    console.log("🧠 OPENAI MESSAGES:", JSON.stringify(messages, null, 2));
+
     const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o", // 🔥 vision için en stabil
       messages,
     });
 
@@ -134,7 +115,7 @@ Yorumun fotoğraflarla birebir ilişkili olsun.
     // 💾 FALI KAYDET
     const fal = await Fal.create({
       userId: req.user.userId,
-      images: imageUrls || [],
+      images: safeImageUrls,
       comment: answer,
       falTuru: falTuru || "Kahve Falı",
     });
@@ -145,7 +126,9 @@ Yorumun fotoğraflarla birebir ilişkili olsun.
       fal,
     });
   } catch (error) {
-    console.error("❌ OpenAI Hatası:", error);
+    console.error("❌ OPENAI ERROR RAW:", error);
+    console.error("❌ OPENAI RESPONSE:", error?.response?.data);
+
     return res.status(500).json({
       success: false,
       message: "AI yorum üretirken hata oluştu.",
