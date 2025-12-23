@@ -75,15 +75,20 @@ function FalciDetay() {
 
   // ✅ Foto seç
   const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
-    setImages([
-      {
-        file,
-        url: URL.createObjectURL(file),
-      },
-    ]);
+    if (!falci.isPremium && files.length > 1) {
+      alert("Bu falcıda sadece 1 fotoğraf gönderebilirsin.");
+      return;
+    }
+
+    const selectedImages = files.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+
+    setImages((prev) => [...prev, ...selectedImages]);
   };
 
   const removeImage = () => setImages([]);
@@ -116,7 +121,7 @@ function FalciDetay() {
 
   // ✅ Fal gönder (AI)
   const sendToFalci = async () => {
-    if (!images && inputText.trim() === "") {
+    if (images.length === 0 && inputText.trim() === "") {
       alert(t("Lütfen 1 fotoğraf yükle veya soru yaz!"));
       return;
     }
@@ -138,11 +143,13 @@ function FalciDetay() {
       ]);
     }
 
-    let uploadedImageUrl = null;
+    let uploadedImageUrls = [];
 
     try {
       if (images.length > 0) {
-        uploadedImageUrl = await uploadImageToServer(images[0].file);
+        uploadedImageUrls = await Promise.all(
+          images.map((img) => uploadImageToServer(img.file))
+        );
       }
     } catch (e) {
       console.error("Fotoğraf yükleme hatası:", e);
@@ -168,7 +175,7 @@ function FalciDetay() {
           },
           body: JSON.stringify({
             question: inputText || "",
-            imageUrl: uploadedImageUrl,
+            imageUrl: uploadedImageUrls,
             falTuru:
               falci.style === "romantik"
                 ? "Aşk Falı"
@@ -286,25 +293,30 @@ function FalciDetay() {
               id="fileInput"
               type="file"
               accept="image/*"
+              multiple={falci.isPremium}
               onChange={handleImageUpload}
               className="hidden"
             />
           </>
         ) : (
-          <div className="mt-2">
-            <div className="relative mx-auto w-full max-w-sm rounded-xl overflow-hidden border border-purple-600 shadow-md">
-              <img
-                src={images[0].url}
-                alt={t("Yüklenen fotoğraf")}
-                className="w-full h-56 object-cover"
-              />
-              <button
-                onClick={removeImage}
-                className="absolute top-2 right-2 bg-black/60 text-white text-xs px-3 py-1 rounded hover:bg-black/70 transition"
-              >
-                ✕ {t("Kaldır")}
-              </button>
-            </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {images.map((img, i) => (
+              <div key={i} className="relative">
+                <img
+                  src={img.url}
+                  alt={t("Yüklenen fotoğraf")}
+                  className="w-full h-40 object-cover rounded-xl"
+                />
+                <button
+                  onClick={() =>
+                    setImages((prev) => prev.filter((_, idx) => idx !== i))
+                  }
+                  className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/70 transition"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -356,6 +368,13 @@ function FalciDetay() {
             </div>
           </div>
         ))}
+        {isSending && (
+          <div className="text-left">
+            <div className="inline-block max-w-[85%] px-4 py-2 rounded-2xl bg-purple-800/50 text-purple-100 animate-pulse">
+              ✨ Falcı yazıyor...
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
