@@ -88,8 +88,9 @@ function FalciDetay() {
 
   const removeImage = () => setImages([]);
 
-  // ✅ Cloudinary upload
   const uploadImageToServer = async (file) => {
+    const token = localStorage.getItem("token");
+
     const formData = new FormData();
     formData.append("image", file);
 
@@ -97,12 +98,19 @@ function FalciDetay() {
       "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload",
       {
         method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+        },
         body: formData,
       }
     );
 
     const data = await res.json();
-    if (!data?.success) throw new Error("Cloudinary upload failed");
+
+    if (!data?.success) {
+      throw new Error("Cloudinary upload failed");
+    }
+
     return data.url;
   };
 
