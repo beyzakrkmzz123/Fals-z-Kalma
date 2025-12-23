@@ -7,17 +7,14 @@ import Fal from "../models/Fal.js";
 dotenv.config();
 const router = express.Router();
 
-// 🔥 OpenAI Client
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 📌 POST → /api/openai/comment
 router.post("/comment", auth, async (req, res) => {
   try {
     const { question, imageUrls, falTuru } = req.body;
 
-    // 🔐 VALIDATION
     if (!question && (!imageUrls || imageUrls.length === 0)) {
       return res.status(400).json({
         success: false,
@@ -25,76 +22,50 @@ router.post("/comment", auth, async (req, res) => {
       });
     }
 
-    /* ===============================
-       🧙‍♀️ FALCIYA GÖRE STİL
-    =============================== */
+    // 🔮 FALCIYA GÖRE PROMPT
     let falciPrompt = "";
 
     if (falTuru === "Aşk Falı") {
-      // 💖 AYŞE
       falciPrompt = `
 Sen romantik, duygusal ve detaycı bir fal yorumcususun.
-Fotoğraflardaki küçük detaylara dikkat et:
-- kalp benzeri şekiller
-- birleşen yollar
-- yumuşak geçişler
-Uzun, betimleyici ve güven veren konuş.
+Fotoğraflardaki küçük detaylara dikkat et.
+Yorumun uzun, yumuşak ve duygusal olsun.
 `;
     } else if (falTuru === "Spiritüel Fal") {
-      // 🔮 ZEYNEP
       falciPrompt = `
 Sen sezgileri güçlü spiritüel bir falcısın.
-Fotoğraflardaki enerji ve yoğunluk farklarını yorumla:
-- koyu alanlar = blokaj
-- açık alanlar = ferahlama
-Sezgisel ama abartısız konuş.
+Enerji, yoğunluk ve dönüşüm temalarına odaklan.
+Yorumun mistik ama abartısız olsun.
 `;
     } else {
-      // ⚡ MEHMET
       falciPrompt = `
-Sen net, kısa ve iddialı konuşan bir falcısın.
-Fotoğraflara bak:
-- açık yol var mı yok mu söyle
-- belirsiz ifadelerden kaçın
-Maddeli ve kesin konuş.
+Sen net ve iddialı konuşan bir falcısın.
+Belirsiz ifadeler kullanma.
+Gördüğünü doğrudan söyle.
 `;
     }
 
-    /* ===============================
-       🧠 ANA PROMPT
-    =============================== */
-    const prompt = `
+    // 🧠 USER TEXT
+    const userText = `
 ${falciPrompt}
 
 Kullanıcının sorusu:
-${question || "Sorulmamış"}
+${question || "Soru sorulmadı"}
 
-Fotoğrafları gerçekten analiz et.
-Eğer görüyorsan:
-- telve yoğunluğunu
-- açık / kapalı alanları
-- fincan kenarındaki akıntıları
-belirt.
-
-Görmediğin hiçbir şeyi ASLA uydurma.
-Genel fal cümlelerinden kaçın.
+Fotoğraf varsa, gördüğün şekilleri doğrudan yorumla.
 `;
 
-    /* ===============================
-       🔥 OPENAI VISION MESAJI
-    =============================== */
-    const safeImageUrls = Array.isArray(imageUrls) ? imageUrls : [];
-
+    // 🔥 OPENAI VISION FORMAT (DOĞRU)
     const messages = [
       {
         role: "system",
-        content: "Sen deneyimli ve sezgileri güçlü bir fal yorumcusun.",
+        content: "Sen deneyimli bir fal yorumcusun.",
       },
       {
         role: "user",
         content: [
-          { type: "text", text: prompt },
-          ...safeImageUrls.map((url) => ({
+          { type: "text", text: userText },
+          ...(imageUrls || []).map((url) => ({
             type: "image_url",
             image_url: { url },
           })),
@@ -102,20 +73,16 @@ Genel fal cümlelerinden kaçın.
       },
     ];
 
-    // 🔴 DEBUG LOG (ÇOK ÖNEMLİ)
-    console.log("🧠 OPENAI MESSAGES:", JSON.stringify(messages, null, 2));
-
     const completion = await client.chat.completions.create({
-      model: "gpt-4o", // 🔥 vision için en stabil
+      model: "gpt-4o-mini",
       messages,
     });
 
     const answer = completion.choices[0].message.content;
 
-    // 💾 FALI KAYDET
     const fal = await Fal.create({
       userId: req.user.userId,
-      images: safeImageUrls,
+      images: imageUrls || [],
       comment: answer,
       falTuru: falTuru || "Kahve Falı",
     });
@@ -126,9 +93,7 @@ Genel fal cümlelerinden kaçın.
       fal,
     });
   } catch (error) {
-    console.error("❌ OPENAI ERROR RAW:", error);
-    console.error("❌ OPENAI RESPONSE:", error?.response?.data);
-
+    console.error("❌ OPENAI ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "AI yorum üretirken hata oluştu.",
