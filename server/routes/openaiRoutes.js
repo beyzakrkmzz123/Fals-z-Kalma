@@ -75,10 +75,14 @@ Bu yorum eğlence amaçlıdır.
 
     const answer = completion.choices[0].message.content;
 
-    // 💾 FALI KAYDET
+    console.log("📸 imageUrls (requestten gelen):", imageUrls);
+
+    const safeImages =
+      Array.isArray(imageUrls) && imageUrls.length > 0 ? imageUrls : [];
+
     const fal = await Fal.create({
       userId: req.user.userId,
-      images: imageUrls || [],
+      images: safeImages,
       comment: answer,
       falTuru: falTuru || "Kahve Falı",
     });
