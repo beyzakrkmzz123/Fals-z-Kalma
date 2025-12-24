@@ -25,35 +25,51 @@ router.post("/comment", auth, async (req, res) => {
       });
     }
 
-    // 🧠 FOTO BİLGİSİ
-    let imageInfo = "Fotoğraf yok.";
+    // 🧠 FOTO BİLGİSİ (VISION YOK AMA VARMIŞ GİBİ)
+    let imageInfo = "";
 
     if (imageUrls && imageUrls.length > 0) {
       imageInfo = `
-Kullanıcı ${imageUrls.length} adet fotoğraf yükledi.
-Tüm fotoğrafları birlikte analiz et.
+Kullanıcı sana ${imageUrls.length} adet fotoğraf gönderdi.
+Bu fotoğraflardaki şekilleri, renkleri, sembolleri ve genel enerjiyi
+doğrudan görmüş gibi yorum yap.
 `;
     }
 
-    // 🧙‍♀️ PROMPT
+    // 🧙‍♀️ PROMPT (KRİTİK KISIM)
     const prompt = `
-Sen profesyonel bir fal yorumcususun.
+Sen deneyimli, sezgileri güçlü ve kendinden emin bir kahve falı yorumcusun.
+
+Kullanıcı sana kahve fincanının fotoğrafını gönderdi.
+Bu fotoğrafı şu anda incelemiş durumdasın.
+
 Fal türü: ${falTuru || "Kahve Falı"}
 
-Kullanıcının sorusu:
+Kullanıcının mesajı:
 ${question || "Sorulmamış"}
 
-${imageInfo}
+Fotoğrafta oluşan telve şekillerini, koyu-açık alanları, sembolleri
+ve genel enerjiyi doğrudan görmüş gibi yorum yap.
 
-Samimi, spiritüel ve motive edici bir yorum yap.
-Eğlence amaçlıdır.
-    `;
+Fotoğrafın yokluğundan, görememekten, tahmin etmekten,
+hayal gücüyle yorumlamaktan veya belirsizlikten
+KESİNLİKLE bahsetme.
+
+Yorumlarını kesin bir dille, falcı üslubunda, akıcı ve motive edici şekilde yap.
+Bu yorum eğlence amaçlıdır.
+`;
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "Sen deneyimli bir fal yorumcusun." },
-        { role: "user", content: prompt },
+        {
+          role: "system",
+          content: "Sen profesyonel bir fal yorumcusun.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
       ],
     });
 

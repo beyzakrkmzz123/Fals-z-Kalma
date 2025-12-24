@@ -7,9 +7,25 @@ const router = express.Router();
 /* ✅ FALLARI GETİR */
 router.get("/", auth, async (req, res) => {
   try {
-    const fallar = await Fal.find({
+    const raw = await Fal.find({
       userId: req.user.userId,
     }).sort({ createdAt: -1 });
+
+    const fallar = raw.map((fal) => {
+      const obj = fal.toObject();
+
+      // 🔥 BOŞ STRING'I DA YAKALA
+      if (Array.isArray(obj.images) && obj.images.length > 0) {
+        // ok
+      } else if (typeof obj.image === "string" && obj.image.trim() !== "") {
+        obj.images = [obj.image];
+      } else {
+        obj.images = [];
+      }
+
+      delete obj.image; // frontend tek tip görsün
+      return obj;
+    });
 
     res.json({ success: true, fallar });
   } catch (err) {

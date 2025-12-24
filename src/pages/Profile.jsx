@@ -217,7 +217,7 @@ function Profile() {
                 </div>
 
                 <img
-                  src={fal.image}
+                  src={fal.images?.[0] || fal.image}
                   className="w-full h-40 object-cover rounded-lg"
                   alt="Fal"
                 />
@@ -249,7 +249,7 @@ function Profile() {
             </button>
 
             <img
-              src={selectedFal.image}
+              src={selectedFal.images?.[0] || selectedFal.image}
               className="w-full h-56 object-cover rounded-xl mb-4"
               alt="Fal"
             />
