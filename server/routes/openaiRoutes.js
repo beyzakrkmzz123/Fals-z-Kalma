@@ -7,7 +7,7 @@ import Fal from "../models/Fal.js";
 dotenv.config();
 const router = express.Router();
 
-// 🔥 OpenAI Client
+// 🔥 OpenAI Client (mock kapalıyken kullanılır)
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -15,6 +15,15 @@ const client = new OpenAI({
 // 📌 POST → /api/openai/comment
 router.post("/comment", auth, async (req, res) => {
   try {
+    // 🧪 MOCK AI (TEST MODU)
+    if (process.env.MOCK_AI === "true") {
+      return res.json({
+        success: true,
+        answer:
+          "🔮 (Test Modu)\nFalında güzel gelişmeler var.\nYakında seni mutlu edecek bir haber alacaksın.\nEnerjin yükseliyor ✨",
+      });
+    }
+
     // 🔥 SADECE imageUrls KULLANIYORUZ
     const { question, imageUrls, falTuru } = req.body;
 
@@ -49,7 +58,7 @@ ${imageInfo}
 Fotoğraf varsa şekilleri, sembolleri ve enerjiyi hissettiğini söyle.
 Samimi, spiritüel ve motive edici bir yorum yap.
 Abartılı mistik bilgiler yazma; eğlence amaçlı yorum yap.
-    `;
+`;
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
