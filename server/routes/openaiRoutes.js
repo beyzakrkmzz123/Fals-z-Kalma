@@ -1,10 +1,16 @@
 import express from "express";
 import dotenv from "dotenv";
+import OpenAI from "openai";
 import auth from "../middleware/authMiddleware.js";
 import Fal from "../models/Fal.js";
 
 dotenv.config();
 const router = express.Router();
+
+// 🔥 OpenAI Client
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // 📌 POST → /api/openai/comment
 router.post("/comment", auth, async (req, res) => {
@@ -19,30 +25,9 @@ router.post("/comment", auth, async (req, res) => {
       });
     }
 
-    // 🧪 MOCK AI (TEST MODU)
-    if (process.env.MOCK_AI === "true") {
-      return res.json({
-        success: true,
-        answer:
-          "🔮 (Test Modu)\nFalında güzel gelişmeler var.\nYakında seni mutlu edecek bir haber alacaksın.\nEnerjin yükseliyor ✨",
-      });
-    }
-
-    // 🔥 BURADAN SONRA GERÇEK OPENAI (DİNAMİK IMPORT)
-    const { default: OpenAI } = await import("openai");
-
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({
-        success: false,
-        message: "OpenAI API key tanımlı değil.",
-      });
-    }
-
-    const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
+    // 🧠 FOTO BİLGİSİ
     let imageInfo = "Fotoğraf yok.";
+
     if (imageUrls && imageUrls.length > 0) {
       imageInfo = `
 Kullanıcı ${imageUrls.length} adet fotoğraf yükledi.
@@ -50,6 +35,7 @@ Tüm fotoğrafları birlikte analiz et.
 `;
     }
 
+    // 🧙‍♀️ PROMPT
     const prompt = `
 Sen profesyonel bir fal yorumcususun.
 Fal türü: ${falTuru || "Kahve Falı"}
@@ -61,7 +47,7 @@ ${imageInfo}
 
 Samimi, spiritüel ve motive edici bir yorum yap.
 Eğlence amaçlıdır.
-`;
+    `;
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
@@ -87,7 +73,7 @@ Eğlence amaçlıdır.
       fal,
     });
   } catch (error) {
-    console.error("❌ OpenAI / Fal Hatası:", error);
+    console.error("❌ OpenAI API / Fal Kayıt Hatası:", error);
 
     return res.status(500).json({
       success: false,
