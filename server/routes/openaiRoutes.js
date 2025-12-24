@@ -7,11 +7,6 @@ import Fal from "../models/Fal.js";
 dotenv.config();
 const router = express.Router();
 
-// 🔥 OpenAI Client (mock kapalıyken kullanılır)
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 // 📌 POST → /api/openai/comment
 router.post("/comment", auth, async (req, res) => {
   try {
@@ -24,10 +19,13 @@ router.post("/comment", auth, async (req, res) => {
       });
     }
 
-    // 🔥 SADECE imageUrls KULLANIYORUZ
+    // 🔥 BURADAN SONRA GERÇEK OPENAI
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const { question, imageUrls, falTuru } = req.body;
 
-    // 🔐 VALIDATION
     if (!question && (!imageUrls || imageUrls.length === 0)) {
       return res.status(400).json({
         success: false,
@@ -35,9 +33,7 @@ router.post("/comment", auth, async (req, res) => {
       });
     }
 
-    // 🧠 FOTO BİLGİSİ
     let imageInfo = "Fotoğraf yok.";
-
     if (imageUrls && imageUrls.length > 0) {
       imageInfo = `
 Kullanıcı ${imageUrls.length} adet fotoğraf yükledi.
@@ -45,7 +41,6 @@ Tüm fotoğrafları birlikte analiz et.
 `;
     }
 
-    // 🧙‍♀️ PROMPT
     const prompt = `
 Sen profesyonel bir fal yorumcususun.
 Fal türü: ${falTuru || "Kahve Falı"}
@@ -55,9 +50,7 @@ ${question || "Sorulmamış"}
 
 ${imageInfo}
 
-Fotoğraf varsa şekilleri, sembolleri ve enerjiyi hissettiğini söyle.
 Samimi, spiritüel ve motive edici bir yorum yap.
-Abartılı mistik bilgiler yazma; eğlence amaçlı yorum yap.
 `;
 
     const completion = await client.chat.completions.create({
@@ -70,7 +63,6 @@ Abartılı mistik bilgiler yazma; eğlence amaçlı yorum yap.
 
     const answer = completion.choices[0].message.content;
 
-    // 💾 FALI KAYDET
     const fal = await Fal.create({
       userId: req.user.userId,
       images: imageUrls || [],
