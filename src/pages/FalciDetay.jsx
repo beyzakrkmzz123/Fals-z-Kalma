@@ -93,14 +93,16 @@ function FalciDetay() {
 
   const removeImage = () => setImages([]);
 
-  const uploadImageToServer = async (file) => {
+  const uploadImagesToServer = async (images) => {
     const token = localStorage.getItem("token");
-
     const formData = new FormData();
-    formData.append("image", file);
+
+    images.forEach((img) => {
+      formData.append("images", img.file);
+    });
 
     const res = await fetch(
-      "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload",
+      "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload-multiple",
       {
         method: "POST",
         headers: {
@@ -111,17 +113,16 @@ function FalciDetay() {
     );
 
     const data = await res.json();
-
-    if (!data?.success) {
-      throw new Error("Cloudinary upload failed");
-    }
-
-    return data.url;
+    return data.urls || [];
   };
 
   // ✅ Fal gönder (AI)
   const sendToFalci = async () => {
-    if (images.length === 0 && inputText.trim() === "") {
+    const hasImage = images.length > 0;
+    const hasText = inputText.trim().length > 0;
+
+    // 🔐 Ön kontrol
+    if (!hasImage && !hasText) {
       alert(t("Lütfen 1 fotoğraf yükle veya soru yaz!"));
       return;
     }
@@ -133,26 +134,52 @@ function FalciDetay() {
 
     setIsSending(true);
 
-    // kullanıcı mesajı
-    if (inputText.trim() !== "") {
-      setMessages((prev) => [...prev, { role: "user", text: inputText }]);
-    } else {
-      setMessages((prev) => [
-        ...prev,
-        { role: "user", text: t("Fotoğraf gönderdim, yorumlar mısın?") },
-      ]);
-    }
+    const finalQuestion = hasText
+      ? inputText
+      : "Bu fotoğraflara bakarak genel bir fal yorumu yap.";
+
+    // 🧑 Kullanıcı mesajı
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        text: hasText ? inputText : t("Fotoğraf gönderdim, yorumlar mısın?"),
+      },
+    ]);
 
     let uploadedImageUrls = [];
 
+    // 📸 Fotoğrafları yükle
     try {
-      if (images.length > 0) {
-        uploadedImageUrls = await Promise.all(
-          images.map((img) => uploadImageToServer(img.file))
+      if (hasImage) {
+        const token = localStorage.getItem("token");
+        const formData = new FormData();
+
+        images.forEach((img) => {
+          formData.append("images", img.file);
+        });
+
+        const uploadRes = await fetch(
+          "https://falsiz-kalma-backend-production.up.railway.app/api/image/upload-multiple",
+          {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + token,
+            },
+            body: formData,
+          }
         );
+
+        const uploadData = await uploadRes.json();
+
+        if (!uploadRes.ok || !uploadData.success) {
+          throw new Error("Fotoğraf yükleme başarısız");
+        }
+
+        uploadedImageUrls = uploadData.urls || [];
       }
-    } catch (e) {
-      console.error("Fotoğraf yükleme hatası:", e);
+    } catch (err) {
+      console.error("Fotoğraf yükleme hatası:", err);
       setMessages((prev) => [
         ...prev,
         { role: "ai", text: t("Fotoğraf yüklenirken hata oluştu ❌") },
@@ -161,7 +188,7 @@ function FalciDetay() {
       return;
     }
 
-    // AI çağrısı
+    // 🤖 OpenAI çağrısı
     try {
       const token = localStorage.getItem("token");
 
@@ -171,11 +198,11 @@ function FalciDetay() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(token ? { Authorization: "Bearer " + token } : {}),
+            Authorization: "Bearer " + token,
           },
           body: JSON.stringify({
-            question: inputText || "",
-            imageUrl: uploadedImageUrls,
+            question: finalQuestion,
+            imageUrls: uploadedImageUrls, // 🔥 BACKEND UYUMLU
             falTuru:
               falci.style === "romantik"
                 ? "Aşk Falı"
@@ -188,50 +215,38 @@ function FalciDetay() {
 
       const data = await res.json();
 
-      // 🔴 BACKEND KONTROLLERİ
+      // ❌ Hata durumu (TEK KONTROL)
       if (!res.ok) {
-        if (data.code === "AI_LIMIT_EXCEEDED") {
-          alert(
-            "Günlük yapay zeka fal hakkın doldu ✨ Premium’a geçebilirsin."
-          );
-          setIsSending(false);
-          return;
-        }
-
         alert(data.message || "Fal oluşturulamadı ❌");
         setIsSending(false);
         return;
       }
 
-      if (data?.success) {
-        const personaPrefix =
-          falci.style === "romantik"
-            ? `💖 ${falci.name}: `
-            : falci.style === "net"
-            ? `⚡ ${falci.name}: `
-            : `🔮 ${falci.name}: `;
+      // ✅ Başarılı cevap
+      const personaPrefix =
+        falci.style === "romantik"
+          ? `💖 ${falci.name}: `
+          : falci.style === "net"
+          ? `⚡ ${falci.name}: `
+          : `🔮 ${falci.name}: `;
 
-        const finalText =
-          falci.style === "net"
-            ? personaPrefix + data.answer.split("\n").slice(0, 6).join("\n")
-            : personaPrefix + data.answer;
+      const finalText =
+        falci.style === "net"
+          ? personaPrefix + data.answer.split("\n").slice(0, 6).join("\n")
+          : personaPrefix + data.answer;
 
-        setMessages((prev) => [...prev, { role: "ai", text: finalText }]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          { role: "ai", text: t("AI yorum üretirken hata oluştu ❌") },
-        ]);
-      }
-    } catch (e) {
-      console.error("OpenAI hata:", e);
+      setMessages((prev) => [...prev, { role: "ai", text: finalText }]);
+    } catch (err) {
+      console.error("OpenAI hata:", err);
       setMessages((prev) => [
         ...prev,
         { role: "ai", text: t("Sunucu hatası ❌") },
       ]);
     }
 
+    // 🧹 Temizlik
     setInputText("");
+    setImages([]);
     setIsSending(false);
   };
 
@@ -281,24 +296,23 @@ function FalciDetay() {
         </div>
 
         {/* Foto upload */}
-        {images.length === 0 ? (
-          <>
-            <label
-              htmlFor="fileInput"
-              className="cursor-pointer inline-block bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 rounded-full text-white font-semibold hover:opacity-90 transition"
-            >
-              {t("Fotoğraf Yükle")}
-            </label>
-            <input
-              id="fileInput"
-              type="file"
-              accept="image/*"
-              multiple={falci.isPremium}
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-          </>
-        ) : (
+        <label
+          htmlFor="fileInput"
+          className="cursor-pointer inline-block bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-3 rounded-full text-white font-semibold hover:opacity-90 transition"
+        >
+          {images.length === 0 ? t("Fotoğraf Yükle") : t("➕ Fotoğraf Ekle")}
+        </label>
+
+        <input
+          id="fileInput"
+          type="file"
+          accept="image/*"
+          multiple={falci.isPremium}
+          onChange={handleImageUpload}
+          className="hidden"
+        />
+
+        {images.length > 0 && (
           <div className="mt-4 grid grid-cols-2 gap-3">
             {images.map((img, i) => (
               <div key={i} className="relative">
